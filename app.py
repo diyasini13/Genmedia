@@ -12,14 +12,10 @@ import requests
 import uuid
 from google.genai import types
 import io
-import moviepy as mp # Changed import for clarity and common usage, assuming editor is what's needed
+import moviepy as mp 
 import auth_token
 
 # --- Configuration ---
-# Ensure these environment variables are correctly set for your GCP project
-# For local development, consider using Streamlit secrets or directly setting in code as you have for demo
-# os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/Users/diyasini/Desktop/Live Demo page/GenMedia/key-svc-gen-ai.json.json'
-# os.environ['GOOGLE_CLOUD_PROJECT'] = 'heroprojectlivedemo'
 os.environ['GCP_REGION'] = 'us-central1'
 project_id = "heroprojectlivedemo"
 gcs_bucket_name = "genmedia_video_hero_package"
@@ -59,7 +55,7 @@ def refine_prompt_with_gemini(user_prompt: str, for_video: bool = False) -> str:
         st.error(f"An error occurred with Gemini: {e}")
         return ""
     
-def refine_veo_prompt_with_gemini(user_prompt: str, image_bytes: bytes = None, mime_type: str = "image/png") -> str: # CHANGED: Made image_bytes optional, for general use
+def refine_veo_prompt_with_gemini(user_prompt: str, image_bytes: bytes = None, mime_type: str = "image/png") -> str:
     """Uses Gemini on Vertex AI to refine a user's prompt for image or video generation, optionally with an image."""
     model = GenerativeModel("gemini-2.0-flash")
     
@@ -120,22 +116,18 @@ def generate_video_with_veo(input_type: str, input_content: bytes | str, video_p
     This function handles the long-running operation and downloads the video from GCS
     for display in Streamlit. It can accept either image bytes or a text prompt as input.
     """
-    # st.info("🎬 Calling the Veo model... This is a long-running operation and may take several minutes.")
-
     genai_image = None
     if input_type == "image":
-        # Ensure input_content is bytes for image input
         if not isinstance(input_content, bytes):
             st.error("Input content for image generation must be bytes.")
             return None
             
         unique_image_filename = f"veo_input_image_{uuid.uuid4()}.png"
-        input_image_gcs_uri = upload_bytes_to_gcs(gcs_bucket_name, unique_image_filename, input_content, content_type="image/png") # Explicitly set content_type
+        input_image_gcs_uri = upload_bytes_to_gcs(gcs_bucket_name, unique_image_filename, input_content, content_type="image/png")
         
         if not input_image_gcs_uri:
             return None
 
-        # st.info(f"Uploaded input image to GCS: {input_image_gcs_uri}")
         genai_image = types.Image(
             gcs_uri=input_image_gcs_uri,
             mime_type="image/png",
@@ -188,16 +180,12 @@ def generate_video_with_veo(input_type: str, input_content: bytes | str, video_p
 
         if operation.response and operation.result and operation.result.generated_videos:
             video_uri = operation.result.generated_videos[0].video.uri
-            # st.success(f"Video generated to GCS: {video_uri}")
-
-            # st.info("Downloading video for display...")
             try:
                 video_blob_name = video_uri.replace(f"gs://{gcs_bucket_name}/", "")
                 bucket = storage_client.bucket(gcs_bucket_name)
                 blob = bucket.blob(video_blob_name)
                 video_bytes = blob.download_as_bytes()
                 
-                # st.success("Video downloaded successfully!")
                 return video_bytes
             except Exception as e:
                 st.error(f"Failed to download video from GCS: {e}")
@@ -213,7 +201,6 @@ def generate_video_with_veo(input_type: str, input_content: bytes | str, video_p
         st.error(f"An error occurred with Veo: {e}")
         return None
 
-# NEW FUNCTIONS FOR VIDEO STITCHING
 def save_temp_video(video_bytes: bytes, segment_index: int) -> str:
     """Saves video bytes to a temporary file and returns the path."""
     temp_dir = "temp_video_segments"
@@ -240,7 +227,6 @@ def stitch_videos(video_paths: list[str]) -> bytes | None:
         output_filename = f"final_stitched_video_{uuid.uuid4()}.mp4"
         output_filepath = os.path.join("temp_video_segments", output_filename)
         
-        # Using preset 'ultrafast' for faster processing in Streamlit demo
         final_clip.write_videofile(output_filepath, codec="libx264", audio_codec="aac", fps=24, preset="ultrafast")
 
         with open(output_filepath, "rb") as f:
@@ -252,7 +238,6 @@ def stitch_videos(video_paths: list[str]) -> bytes | None:
                 os.remove(path)
         if os.path.exists(output_filepath):
             os.remove(output_filepath)
-        # Only remove directory if it's empty
         if os.path.exists("temp_video_segments") and not os.listdir("temp_video_segments"):
             os.rmdir("temp_video_segments")
 
@@ -263,7 +248,6 @@ def stitch_videos(video_paths: list[str]) -> bytes | None:
         st.error(f"Error stitching videos with MoviePy: {e}")
         st.warning("Please ensure FFmpeg is installed and accessible in your environment for MoviePy to function correctly.")
         return None
-# END NEW FUNCTIONS
 
 # --- Streamlit App UI ---
 
@@ -276,39 +260,33 @@ def app():
     # Initialize session state variables
     if 'refined_prompt' not in st.session_state:
         st.session_state.refined_prompt = ""
-    # NEW: Raw user prompt for Image to Video
     if 'raw_image_user_prompt' not in st.session_state:
         st.session_state.raw_image_user_prompt = "" 
     if 'image_bytes' not in st.session_state:
         st.session_state.image_bytes = None
-    if 'uploaded_image_bytes' not in st.session_state: # This will only be used by the 'Animate Image' tab now
+    if 'uploaded_image_bytes' not in st.session_state: 
         st.session_state.uploaded_image_bytes = None
-    if 'uploaded_image_mime_type' not in st.session_state: # NEW: To store MIME type for refined prompt
+    if 'uploaded_image_mime_type' not in st.session_state:
         st.session_state.uploaded_image_mime_type = "image/png"
     if 'video_bytes' not in st.session_state:
         st.session_state.video_bytes = None
-    # if 'user_entered_prompt' not in st.session_state: # This variable is no longer needed in its old role
-    #     st.session_state.user_entered_prompt = ""
     
-    # NEW: Raw user prompt for Veo animation prompt (Image to Video Tab)
     if 'raw_veo_user_prompt' not in st.session_state:
         st.session_state.raw_veo_user_prompt = ""
     if 'veo_refined_prompt' not in st.session_state:
         st.session_state.veo_refined_prompt = "" 
     
-    # NEW: Raw user prompt for Text to Video
     if 'raw_text_to_video_user_prompt' not in st.session_state:
         st.session_state.raw_text_to_video_user_prompt = ""
     if 'text_to_video_refined_prompt' not in st.session_state:
         st.session_state.text_to_video_refined_prompt = ""
     if 'animate_image_uploaded_bytes' not in st.session_state:
         st.session_state.animate_image_uploaded_bytes = None
-    if 'animate_image_uploaded_mime_type' not in st.session_state: # NEW: For animate image's uploaded file type
+    if 'animate_image_uploaded_mime_type' not in st.session_state: 
         st.session_state.animate_image_uploaded_mime_type = "image/png"
     if 'animate_image_prompt_option' not in st.session_state:
-        st.session_state.animate_image_prompt_option = "Without prompt" # Initialize to "Without prompt"
+        st.session_state.animate_image_prompt_option = "Without prompt"
     
-    # NEW: Raw user prompt for Animate Image
     if 'raw_animate_image_user_prompt' not in st.session_state:
         st.session_state.raw_animate_image_user_prompt = ""
     if 'animate_image_refined_prompt' not in st.session_state:
@@ -318,36 +296,32 @@ def app():
 
     # Long Video (Text-Based)
     if 'long_video_segments' not in st.session_state: 
-        st.session_state.long_video_segments = [] # Stores file paths of generated segments
+        st.session_state.long_video_segments = []
     if 'long_video_final_video' not in st.session_state: 
         st.session_state.long_video_final_video = None
     if 'long_video_raw_segment_prompts' not in st.session_state: 
         st.session_state.long_video_raw_segment_prompts = [""]
     if 'long_video_refined_segment_prompts' not in st.session_state:
         st.session_state.long_video_refined_segment_prompts = [""]
-    # NEW: To store video bytes for display
     if 'long_video_segment_bytes' not in st.session_state:
-        st.session_state.long_video_segment_bytes = [] 
+        st.session_state.long_video_segment_bytes = [None] 
 
 
-    # --- NEW SESSION STATE FOR IMAGE TO LONG VIDEO ---
+    # Image to Long Video
     if 'img_long_video_uploaded_image_bytes' not in st.session_state:
         st.session_state.img_long_video_uploaded_image_bytes = None
     if 'img_long_video_uploaded_image_mime_type' not in st.session_state:
         st.session_state.img_long_video_uploaded_image_mime_type = "image/png"
-    # NEW: Raw prompt for image-based long video segments
     if 'img_long_video_raw_segment_prompts' not in st.session_state:
         st.session_state.img_long_video_raw_segment_prompts = [""]
-    # NEW: Refined prompt for image-based long video segments
     if 'img_long_video_refined_segment_prompts' not in st.session_state:
         st.session_state.img_long_video_refined_segment_prompts = [""]
     if 'img_long_video_generated_segments_paths' not in st.session_state:
         st.session_state.img_long_video_generated_segments_paths = []
     if 'img_long_video_final_video' not in st.session_state:
         st.session_state.img_long_video_final_video = None
-    # NEW: To store video bytes for display
     if 'img_long_video_segment_bytes' not in st.session_state:
-        st.session_state.img_long_video_segment_bytes = []
+        st.session_state.img_long_video_segment_bytes = [None]
 
 
     # --- Navigation Bar (Using st.tabs) ---
@@ -356,39 +330,33 @@ def app():
         "📝 Text to Video Generation", 
         "✨ Animate Image", 
         "🎬 Long Video Generator (Text-Based)", 
-        "📸 Image to Long Videos" # NEW TAB
+        "📸 Image to Long Videos"
     ]) 
 
     with tab_image_to_video:
-        # --- Step 1: Craft Your Image Prompt ---
         st.header("Step 1: Craft and Refine Your **Image** Prompt")
         st.markdown("Start by describing your visual idea. Gemini can help you make it more detailed for better image results.")
 
         col1_img_prompt, col2_img_prompt = st.columns(2)
 
         with col1_img_prompt:
-            # Bind the text area directly to raw_image_user_prompt
             st.session_state.raw_image_user_prompt = st.text_area(
                 "Enter your initial idea for the image:", 
                 height=150, 
-                key="raw_image_user_prompt_input", # Unique key
-                value=st.session_state.raw_image_user_prompt, # Use the raw input state
+                key="raw_image_user_prompt_input",
+                value=st.session_state.raw_image_user_prompt,
                 help="Describe the scene, subject, and desired style for the base image."
             )
             
             if st.button("🚀 Refine Image Prompt with Gemini", use_container_width=True, type="primary"):
-                # Always refine based on the raw input
                 if st.session_state.raw_image_user_prompt: 
                     with st.spinner("Gemini is refining your image prompt..."):
                         refined_text = refine_prompt_with_gemini(st.session_state.raw_image_user_prompt, for_video=False)
-                        
                         if refined_text:
                             st.session_state.refined_prompt = refined_text
-                            # Do NOT update raw_image_user_prompt with refined_text
-                    
                     st.session_state.image_bytes = None 
                     st.session_state.video_bytes = None 
-                    st.session_state.raw_veo_user_prompt = "" # Reset raw veo prompt
+                    st.session_state.raw_veo_user_prompt = "" 
                     st.session_state.veo_refined_prompt = "" 
                 else:
                     st.warning("Please enter an initial idea for the image to refine.")
@@ -400,11 +368,9 @@ def app():
             else:
                 st.info("Your refined image prompt, enhanced by Gemini for optimal generation, will appear here.")
 
-        # --- Step 2: Image Generation ---
         st.header("Step 2: Generate a Base Image")
         st.markdown("This image will serve as the static foundation for your video.")
 
-        # If a refined prompt exists, use it; otherwise, use the raw user input
         prompt_to_use_for_imagen = st.session_state.refined_prompt if st.session_state.refined_prompt else st.session_state.raw_image_user_prompt
 
         if st.button("🎨 Generate Image with Imagen", use_container_width=True, disabled=not prompt_to_use_for_imagen, key="generate_image_button"):
@@ -412,7 +378,7 @@ def app():
                 with st.spinner("Imagen is generating your image... This may take a moment."):
                     st.session_state.image_bytes = generate_image_with_imagen(prompt_to_use_for_imagen)
                     st.session_state.video_bytes = None
-                    st.session_state.raw_veo_user_prompt = "" # Reset raw veo prompt
+                    st.session_state.raw_veo_user_prompt = "" 
                     st.session_state.veo_refined_prompt = ""
             else:
                 st.warning("Please provide a prompt (in Step 1) to generate an image.")
@@ -422,7 +388,6 @@ def app():
         else:
             st.info("Your generated image will appear here.")
 
-        # --- Step 3: Animate Your Image with Veo ---
         st.header("Step 3: Animate Your Image with Veo")
         
         image_for_veo = None
@@ -432,12 +397,11 @@ def app():
         else:
             st.warning("Please generate an image in Step 2 to proceed with video generation.")
 
-        # Added the radio button for prompt options
         st.subheader("Animation Options")
         st.session_state.animate_image_prompt_option = st.radio(
             "How do you want to animate the image?",
             ("Without prompt", "With prompt"),
-            key="image_to_video_prompt_option_radio" # Unique key for this radio button
+            key="image_to_video_prompt_option_radio"
         )
 
         final_veo_prompt_image_to_video = ""
@@ -447,24 +411,20 @@ def app():
             col1_vid_prompt, col2_vid_prompt = st.columns(2)
 
             with col1_vid_prompt:
-                # Bind this text area to raw_veo_user_prompt
                 st.session_state.raw_veo_user_prompt = st.text_area(
                     "Enter your idea for the video's motion and story:", 
                     height=150, 
-                    key="raw_veo_user_prompt_input", # Unique key
-                    value=st.session_state.raw_veo_user_prompt, # Use the raw input state
+                    key="raw_veo_user_prompt_input",
+                    value=st.session_state.raw_veo_user_prompt,
                     help="Describe what should happen in the video, including character actions or camera movements (e.g., 'camera pans left slowly', 'a car drives by')."
                 )
 
                 if st.button("🚀 Refine Video Prompt with Gemini", use_container_width=True, type="primary", key="refine_video_prompt_button"):
-                    # Always refine based on the raw input
                     if st.session_state.raw_veo_user_prompt and st.session_state.image_bytes: 
                         with st.spinner("Gemini is refining your video prompt..."):
-                            # Pass raw input
                             refined_veo_text = refine_veo_prompt_with_gemini(st.session_state.raw_veo_user_prompt, st.session_state.image_bytes, st.session_state.uploaded_image_mime_type)
                             if refined_veo_text:
                                 st.session_state.veo_refined_prompt = refined_veo_text
-                                # Do NOT update raw_veo_user_prompt with refined_veo_text
                         st.session_state.video_bytes = None
                     else: 
                         st.warning("Please enter an initial idea for the video and ensure an image is generated in Step 2 to refine.")
@@ -473,7 +433,7 @@ def app():
                 if st.session_state.veo_refined_prompt:
                     st.markdown("**Gemini's Refined Video Prompt:**")
                     st.info(st.session_state.veo_refined_prompt)
-                elif st.session_state.raw_veo_user_prompt: # Show raw input if no refinement yet
+                elif st.session_state.raw_veo_user_prompt: 
                     st.markdown("**Your Video Prompt:**")
                     st.info(st.session_state.raw_veo_user_prompt)
                 else:
@@ -481,10 +441,10 @@ def app():
             
             final_veo_prompt_image_to_video = (
                 st.session_state.veo_refined_prompt
-                or st.session_state.raw_veo_user_prompt # Use raw if no refinement
+                or st.session_state.raw_veo_user_prompt
             )
-        else: # "Without prompt" selected
-            final_veo_prompt_image_to_video = "Animate the image." # Default prompt for no explicit user prompt
+        else:
+            final_veo_prompt_image_to_video = "Animate the image."
 
         st.markdown("---")
 
@@ -512,23 +472,20 @@ def app():
         col1_text_vid_prompt, col2_text_vid_prompt = st.columns(2)
 
         with col1_text_vid_prompt:
-            # Bind to raw_text_to_video_user_prompt
             st.session_state.raw_text_to_video_user_prompt = st.text_area(
                 "Enter your idea for the video:", 
                 height=150, 
                 key="raw_text_to_video_user_prompt_input",
-                value=st.session_state.raw_text_to_video_user_prompt, # Use raw input
+                value=st.session_state.raw_text_to_video_user_prompt,
                 help="Describe the entire video, including characters, actions, environment, and camera movements."
             )
 
             if st.button("🚀 Refine Video Prompt with Gemini", use_container_width=True, type="primary", key="refine_text_video_prompt_button"):
-                # Refine based on raw input
                 if st.session_state.raw_text_to_video_user_prompt:
                     with st.spinner("Gemini is refining your video prompt..."):
                         refined_text_to_video_prompt = refine_prompt_with_gemini(st.session_state.raw_text_to_video_user_prompt, for_video=True)
                         if refined_text_to_video_prompt:
                             st.session_state.text_to_video_refined_prompt = refined_text_to_video_prompt
-                            # Do NOT update raw_text_to_video_user_prompt with refined_text_to_video_prompt
                     st.session_state.video_bytes = None
                 else:
                     st.warning("Please enter an initial idea for the video to refine.")
@@ -537,7 +494,7 @@ def app():
             if st.session_state.text_to_video_refined_prompt:
                 st.markdown("**Gemini's Refined Video Prompt:**")
                 st.info(st.session_state.text_to_video_refined_prompt)
-            elif st.session_state.raw_text_to_video_user_prompt: # Show raw if no refinement
+            elif st.session_state.raw_text_to_video_user_prompt:
                 st.markdown("**Your Video Prompt:**")
                 st.info(st.session_state.raw_text_to_video_user_prompt)
             else:
@@ -545,7 +502,7 @@ def app():
         
         final_text_to_video_prompt = (
             st.session_state.text_to_video_refined_prompt
-            or st.session_state.raw_text_to_video_user_prompt # Use raw if no refinement
+            or st.session_state.raw_text_to_video_user_prompt
         )
 
         st.markdown("---")
@@ -568,23 +525,20 @@ def app():
         st.header("Animate an Image with Veo")
         st.markdown("Upload an image and choose whether to animate it with or without a descriptive prompt.")
 
-        # --- Upload Image Section ---
         st.subheader("Upload Your Image")
         uploaded_animate_file = st.file_uploader("Choose an image to animate...", type=["jpg", "jpeg", "png"], key="animate_image_uploader")
 
         if uploaded_animate_file is not None:
             st.session_state.animate_image_uploaded_bytes = uploaded_animate_file.getvalue()
-            st.session_state.animate_image_uploaded_mime_type = uploaded_animate_file.type # NEW: Store the MIME type
+            st.session_state.animate_image_uploaded_mime_type = uploaded_animate_file.type
             st.image(st.session_state.animate_image_uploaded_bytes, caption="Image to Animate", width=300)
             st.success("Image uploaded successfully!")
-            st.session_state.animate_image_video_bytes = None # Clear previous video
-            # Reset prompts when new image uploaded
+            st.session_state.animate_image_video_bytes = None
             st.session_state.raw_animate_image_user_prompt = ""
             st.session_state.animate_image_refined_prompt = ""
         else:
             st.info("Upload an image (JPG, JPEG, PNG) to animate.")
 
-        # --- Prompt Options ---
         if st.session_state.animate_image_uploaded_bytes:
             st.subheader("Animation Options")
             st.session_state.animate_image_prompt_option = st.radio(
@@ -598,17 +552,15 @@ def app():
             if st.session_state.animate_image_prompt_option == "With prompt":
                 col1_animate_prompt, col2_animate_prompt = st.columns(2)
                 with col1_animate_prompt:
-                    # Bind to raw_animate_image_user_prompt
                     st.session_state.raw_animate_image_user_prompt = st.text_area(
                         "Enter your prompt for animation:",
                         height=150,
                         key="raw_animate_image_user_prompt_input",
-                        value=st.session_state.raw_animate_image_user_prompt, # Use raw input
+                        value=st.session_state.raw_animate_image_user_prompt,
                         help="Describe the desired motion, actions, and camera movements for the animation."
                     )
 
                     if st.button("🚀 Refine Animation Prompt with Gemini", use_container_width=True, type="primary", key="refine_animate_prompt_button"):
-                        # Refine based on raw input
                         if st.session_state.raw_animate_image_user_prompt and st.session_state.animate_image_uploaded_bytes: 
                             with st.spinner("Gemini is refining your animation prompt..."):
                                 refined_animate_text = refine_veo_prompt_with_gemini(
@@ -618,7 +570,6 @@ def app():
                                 )
                                 if refined_animate_text:
                                     st.session_state.animate_image_refined_prompt = refined_animate_text
-                                    # Do NOT update raw_animate_image_user_prompt with refined_animate_text
                             st.session_state.animate_image_video_bytes = None
                         else: 
                             st.warning("Please enter an initial idea for the animation and ensure an image is uploaded to refine.")
@@ -626,7 +577,7 @@ def app():
                     if st.session_state.animate_image_refined_prompt:
                         st.markdown("**Gemini's Refined Animation Prompt:**")
                         st.info(st.session_state.animate_image_refined_prompt)
-                    elif st.session_state.raw_animate_image_user_prompt: # Show raw if no refinement
+                    elif st.session_state.raw_animate_image_user_prompt:
                         st.markdown("**Your Animation Prompt:**")
                         st.info(st.session_state.raw_animate_image_user_prompt)
                     else:
@@ -634,10 +585,10 @@ def app():
                 
                 final_animation_prompt = (
                     st.session_state.animate_image_refined_prompt
-                    or st.session_state.raw_animate_image_user_prompt # Use raw if no refinement
+                    or st.session_state.raw_animate_image_user_prompt
                 )
-            else: # "Without prompt" selected
-                final_animation_prompt = "Animate the image." # Default prompt
+            else:
+                final_animation_prompt = "Animate the image."
 
             st.markdown("---")
             
@@ -663,32 +614,25 @@ def app():
             else:
                 st.info("Your animated video will appear here after Veo finishes processing.")
 
-    # Existing Long Video Generator (Text-Based)
     with tab_long_video:
         st.header("Generate Long Videos (Text-Based)")
         st.markdown("Since Veo generates videos up to 8 seconds, you can create longer videos by defining multiple segments and stitching them together.")
 
-        # Dynamic prompt input fields for segments
         st.subheader("Define Video Segments")
         
-        # Initialize long_video_raw_segment_prompts and long_video_refined_segment_prompts if needed
-        # This loop ensures that `refined_segment_prompts` and `segment_bytes` lists have the same
-        # length as `raw_segment_prompts` after additions/removals.
-        while len(st.session_state.long_video_refined_segment_prompts) < len(st.session_state.long_video_raw_segment_prompts):
+        # Ensure consistency in list lengths, adding None for new segments' video bytes
+        # This loop handles initialization and consistency for existing segments
+        num_segments = len(st.session_state.long_video_raw_segment_prompts)
+        while len(st.session_state.long_video_refined_segment_prompts) < num_segments:
             st.session_state.long_video_refined_segment_prompts.append("")
-            st.session_state.long_video_segment_bytes.append(None) # Initialize with None
-        while len(st.session_state.long_video_raw_segment_prompts) < len(st.session_state.long_video_refined_segment_prompts):
-            st.session_state.long_video_raw_segment_prompts.append("")
-        while len(st.session_state.long_video_segment_bytes) < len(st.session_state.long_video_raw_segment_prompts):
+        while len(st.session_state.long_video_segment_bytes) < num_segments:
             st.session_state.long_video_segment_bytes.append(None)
 
-
-        for i in range(len(st.session_state.long_video_raw_segment_prompts)):
+        for i in range(num_segments):
             st.markdown(f"**Segment {i+1}**")
             col_prompt, col_refine = st.columns([0.7, 0.3])
             
             with col_prompt:
-                # Bind to raw segment prompt
                 st.session_state.long_video_raw_segment_prompts[i] = st.text_area(
                     f"Enter prompt for Segment {i+1}:", 
                     height=100, 
@@ -698,44 +642,45 @@ def app():
                 )
                 
             with col_refine:
-                st.markdown("<br>", unsafe_allow_html=True) # Spacer for alignment
+                st.markdown("<br>", unsafe_allow_html=True)
                 if st.button(f"✨ Refine Segment {i+1} Prompt", key=f"refine_long_segment_prompt_{i}", use_container_width=True):
-                    # Refine based on raw segment prompt
                     if st.session_state.long_video_raw_segment_prompts[i]:
                         with st.spinner(f"Refining prompt for Segment {i+1}..."):
                             refined_segment_prompt = refine_prompt_with_gemini(st.session_state.long_video_raw_segment_prompts[i], for_video=True)
                             if refined_segment_prompt:
                                 st.session_state.long_video_refined_segment_prompts[i] = refined_segment_prompt
-                                # Clear generated video for this segment if prompt changes
                                 st.session_state.long_video_segment_bytes[i] = None 
                                 st.session_state.long_video_final_video = None
-                                # Do NOT update raw_segment_prompt with refined_segment_prompt
-                                # st.rerun() # Rerun to update the text area with refined prompt (if it were to display refined)
+                        st.rerun()
                     else:
                         st.warning("Please enter a prompt for this segment to refine.")
             
-            # Display refined prompt for each segment
             if st.session_state.long_video_refined_segment_prompts[i]:
                 st.info(f"**Refined Prompt for Segment {i+1}:** {st.session_state.long_video_refined_segment_prompts[i]}")
             else:
                 st.info(f"Refined prompt for Segment {i+1} will appear here.")
+            
+            if st.session_state.long_video_segment_bytes[i]:
+                st.markdown(f"**Generated Segment {i+1} Video:**")
+                st.video(st.session_state.long_video_segment_bytes[i])
+                st.markdown("---")
 
 
         col_add_remove = st.columns(2)
         with col_add_remove[0]:
             if st.button("➕ Add Another Segment", use_container_width=True):
                 st.session_state.long_video_raw_segment_prompts.append("")
-                st.session_state.long_video_refined_segment_prompts.append("") # Add a placeholder for refined
-                st.session_state.long_video_segment_bytes.append(None) # Add a placeholder for video bytes
-                st.session_state.long_video_final_video = None # Clear previous
-                st.session_state.long_video_segments = [] # Clear generated segments
-                st.rerun() # Rerun to show new input field
+                st.session_state.long_video_refined_segment_prompts.append("") 
+                st.session_state.long_video_segment_bytes.append(None) 
+                st.session_state.long_video_final_video = None
+                st.session_state.long_video_segments = []
+                st.rerun()
         with col_add_remove[1]:
             if len(st.session_state.long_video_raw_segment_prompts) > 1:
                 if st.button("➖ Remove Last Segment", use_container_width=True):
                     st.session_state.long_video_raw_segment_prompts.pop()
-                    st.session_state.long_video_refined_segment_prompts.pop() # Remove corresponding refined
-                    st.session_state.long_video_segment_bytes.pop() # Remove corresponding video bytes
+                    st.session_state.long_video_refined_segment_prompts.pop() 
+                    st.session_state.long_video_segment_bytes.pop() 
                     st.session_state.long_video_final_video = None
                     st.session_state.long_video_segments = []
                     st.rerun()
@@ -744,12 +689,10 @@ def app():
         st.markdown("---")
         st.subheader("Generate and Stitch")
 
-        # Generate Segments Button
         if st.button("🚀 Generate All Video Segments", use_container_width=True, type="primary", key="generate_all_segments_button"):
             all_prompts_valid = True
             prompts_to_use = []
             for i in range(len(st.session_state.long_video_raw_segment_prompts)):
-                # Prioritize refined, then raw
                 current_prompt = st.session_state.long_video_refined_segment_prompts[i] or \
                                  st.session_state.long_video_raw_segment_prompts[i]
                 if not current_prompt.strip():
@@ -759,9 +702,9 @@ def app():
                 prompts_to_use.append(current_prompt)
             
             if all_prompts_valid:
-                st.session_state.long_video_segments = [] # Reset generated segments (file paths)
-                st.session_state.long_video_segment_bytes = [] # Reset generated video bytes for display
-                st.session_state.long_video_final_video = None # Reset final video
+                st.session_state.long_video_segments = [] 
+                st.session_state.long_video_segment_bytes = []
+                st.session_state.long_video_final_video = None 
                 
                 total_segments = len(prompts_to_use)
                 segment_progress_bar = st.progress(0)
@@ -770,12 +713,12 @@ def app():
                 for i, prompt in enumerate(prompts_to_use):
                     segment_status_text.text(f"Generating segment {i+1} of {total_segments}...")
                     with st.spinner(f"Veo is generating segment {i+1}..."):
-                        segment_video_bytes = generate_video_with_veo("text", None, prompt) # Use "text" input type
+                        segment_video_bytes = generate_video_with_veo("text", None, prompt) 
                         if segment_video_bytes:
                             temp_filepath = save_temp_video(segment_video_bytes, i)
                             if temp_filepath:
                                 st.session_state.long_video_segments.append(temp_filepath)
-                                st.session_state.long_video_segment_bytes.append(segment_video_bytes) # Store bytes for display
+                                st.session_state.long_video_segment_bytes.append(segment_video_bytes) 
                         else:
                             st.error(f"Failed to generate segment {i+1}. Aborting stitching.")
                             st.session_state.long_video_segments = [] 
@@ -784,15 +727,8 @@ def app():
                     segment_progress_bar.progress(int(((i + 1) / total_segments) * 100))
                 
                 if len(st.session_state.long_video_segments) == total_segments and total_segments > 0:
-                    st.success("All segments generated successfully!")
-                    # Display individual segments
-                    st.subheader("Individual Video Segments:")
-                    for idx, segment_bytes in enumerate(st.session_state.long_video_segment_bytes):
-                        st.markdown(f"**Segment {idx+1} Video:**")
-                        st.video(segment_bytes)
-                        st.markdown("---") # Separator between segments
-
-                    # Automatically stitch if all segments are generated
+                    st.success("All segments generated successfully! Now stitching...")
+                    # Individual segments are already displayed in the loop above
                     final_stitched_video_bytes = stitch_videos(st.session_state.long_video_segments)
                     if final_stitched_video_bytes:
                         st.session_state.long_video_final_video = final_stitched_video_bytes
@@ -811,14 +747,10 @@ def app():
             st.info("Define your video segments above and click 'Generate All Video Segments' to create your long video.")
 
 
-    ### **New Tab: Image to Long Videos**
-
-
-    with tab_img_to_long_video: # This is the new tab
+    with tab_img_to_long_video:
         st.header("Image to Long Videos")
         st.markdown("Upload a base image and define multiple prompt segments to create a long video, with each segment animating the uploaded image.")
 
-        # --- Step 1: Upload Base Image ---
         st.subheader("Step 1: Upload Your Base Image")
         uploaded_img_long_file = st.file_uploader(
             "Choose an image to be the base for all video segments...", 
@@ -831,42 +763,31 @@ def app():
             st.session_state.img_long_video_uploaded_image_mime_type = uploaded_img_long_file.type
             st.image(st.session_state.img_long_video_uploaded_image_bytes, caption="Base Image for Long Video", width=300)
             st.success("Base image uploaded successfully!")
-            # Reset segments and final video if a new image is uploaded
             st.session_state.img_long_video_generated_segments_paths = []
             st.session_state.img_long_video_final_video = None
             # Reset prompts and video bytes when new image uploaded
             st.session_state.img_long_video_raw_segment_prompts = [""]
             st.session_state.img_long_video_refined_segment_prompts = [""]
-            st.session_state.img_long_video_segment_bytes = []
+            st.session_state.img_long_video_segment_bytes = [None]
         else:
             st.info("Upload a single image (JPG, JPEG, PNG) that will be animated across all video segments.")
 
-        # --- Step 2: Define Video Segments ---
         st.subheader("Step 2: Define Video Segments")
         st.markdown("For each segment, describe the animation or action you want to see applied to the uploaded image. Consider continuity!")
         
-        # Ensure there's at least one prompt input if none exist
-        if not st.session_state.img_long_video_raw_segment_prompts:
-            st.session_state.img_long_video_raw_segment_prompts.append("")
+        # Ensure consistency in list lengths, adding None for new segments' video bytes
+        num_segments_img_long = len(st.session_state.img_long_video_raw_segment_prompts)
+        while len(st.session_state.img_long_video_refined_segment_prompts) < num_segments_img_long:
             st.session_state.img_long_video_refined_segment_prompts.append("")
-            st.session_state.img_long_video_segment_bytes.append(None)
-
-        # Ensure consistency in list lengths
-        while len(st.session_state.img_long_video_refined_segment_prompts) < len(st.session_state.img_long_video_raw_segment_prompts):
-            st.session_state.img_long_video_refined_segment_prompts.append("")
-            st.session_state.img_long_video_segment_bytes.append(None)
-        while len(st.session_state.img_long_video_raw_segment_prompts) < len(st.session_state.img_long_video_refined_segment_prompts):
-            st.session_state.img_long_video_raw_segment_prompts.append("")
-        while len(st.session_state.img_long_video_segment_bytes) < len(st.session_state.img_long_video_raw_segment_prompts):
+        while len(st.session_state.img_long_video_segment_bytes) < num_segments_img_long:
             st.session_state.img_long_video_segment_bytes.append(None)
 
 
-        for i in range(len(st.session_state.img_long_video_raw_segment_prompts)):
+        for i in range(num_segments_img_long):
             st.markdown(f"**Segment {i+1}**")
             col_prompt, col_refine = st.columns([0.7, 0.3])
             
             with col_prompt:
-                # Bind to raw segment prompt
                 st.session_state.img_long_video_raw_segment_prompts[i] = st.text_area(
                     f"Enter prompt for Segment {i+1}:", 
                     height=100, 
@@ -876,12 +797,10 @@ def app():
                 )
                 
             with col_refine:
-                st.markdown("<br>", unsafe_allow_html=True) # Spacer for alignment
+                st.markdown("<br>", unsafe_allow_html=True)
                 if st.button(f"✨ Refine Segment {i+1} Prompt (Gemini)", key=f"refine_img_long_segment_prompt_{i}", use_container_width=True):
-                    # Refine based on raw segment prompt
                     if st.session_state.img_long_video_raw_segment_prompts[i] and st.session_state.img_long_video_uploaded_image_bytes:
                         with st.spinner(f"Refining prompt for Segment {i+1}..."):
-                            # Pass the uploaded image bytes to Gemini for context
                             refined_segment_prompt = refine_veo_prompt_with_gemini(
                                 st.session_state.img_long_video_raw_segment_prompts[i], 
                                 st.session_state.img_long_video_uploaded_image_bytes, 
@@ -889,36 +808,38 @@ def app():
                             )
                             if refined_segment_prompt:
                                 st.session_state.img_long_video_refined_segment_prompts[i] = refined_segment_prompt
-                                # Clear generated video for this segment if prompt changes
                                 st.session_state.img_long_video_segment_bytes[i] = None
                                 st.session_state.img_long_video_final_video = None
-                                # Do NOT update raw_segment_prompt with refined_segment_prompt
-                                # st.rerun() # Rerun to update the text area with refined prompt (if it were to display refined)
+                        st.rerun()
                     else:
                         st.warning("Please enter a prompt for this segment AND upload a base image to refine.")
             
-            # Display refined prompt for each segment
             if st.session_state.img_long_video_refined_segment_prompts[i]:
                 st.info(f"**Refined Prompt for Segment {i+1}:** {st.session_state.img_long_video_refined_segment_prompts[i]}")
             else:
                 st.info(f"Refined prompt for Segment {i+1} will appear here.")
+            
+            if st.session_state.img_long_video_segment_bytes[i]:
+                st.markdown(f"**Generated Segment {i+1} Video:**")
+                st.video(st.session_state.img_long_video_segment_bytes[i])
+                st.markdown("---")
 
 
         col_add_remove_img_long = st.columns(2)
         with col_add_remove_img_long[0]:
             if st.button("➕ Add Another Segment", use_container_width=True, key="add_img_long_segment"):
                 st.session_state.img_long_video_raw_segment_prompts.append("")
-                st.session_state.img_long_video_refined_segment_prompts.append("") # Add placeholder for refined
-                st.session_state.img_long_video_segment_bytes.append(None) # Add placeholder for video bytes
-                st.session_state.img_long_video_final_video = None # Clear previous
-                st.session_state.img_long_video_generated_segments_paths = [] # Clear generated segments
+                st.session_state.img_long_video_refined_segment_prompts.append("")
+                st.session_state.img_long_video_segment_bytes.append(None)
+                st.session_state.img_long_video_final_video = None
+                st.session_state.img_long_video_generated_segments_paths = []
                 st.rerun() 
         with col_add_remove_img_long[1]:
             if len(st.session_state.img_long_video_raw_segment_prompts) > 1:
                 if st.button("➖ Remove Last Segment", use_container_width=True, key="remove_img_long_segment"):
                     st.session_state.img_long_video_raw_segment_prompts.pop()
-                    st.session_state.img_long_video_refined_segment_prompts.pop() # Remove corresponding refined
-                    st.session_state.img_long_video_segment_bytes.pop() # Remove corresponding video bytes
+                    st.session_state.img_long_video_refined_segment_prompts.pop()
+                    st.session_state.img_long_video_segment_bytes.pop()
                     st.session_state.img_long_video_final_video = None
                     st.session_state.img_long_video_generated_segments_paths = []
                     st.rerun()
@@ -936,7 +857,6 @@ def app():
                 all_prompts_valid = True
                 prompts_to_use = []
                 for i in range(len(st.session_state.img_long_video_raw_segment_prompts)):
-                    # Prioritize refined, then raw
                     current_prompt = st.session_state.img_long_video_refined_segment_prompts[i] or \
                                      st.session_state.img_long_video_raw_segment_prompts[i]
                     if not current_prompt.strip():
@@ -946,9 +866,9 @@ def app():
                     prompts_to_use.append(current_prompt)
 
                 if all_prompts_valid:
-                    st.session_state.img_long_video_generated_segments_paths = [] # Reset generated paths
-                    st.session_state.img_long_video_segment_bytes = [] # Reset generated video bytes for display
-                    st.session_state.img_long_video_final_video = None # Reset final video
+                    st.session_state.img_long_video_generated_segments_paths = []
+                    st.session_state.img_long_video_segment_bytes = []
+                    st.session_state.img_long_video_final_video = None
                     
                     total_segments = len(prompts_to_use)
                     segment_progress_bar = st.progress(0)
@@ -966,24 +886,18 @@ def app():
                                 temp_filepath = save_temp_video(segment_video_bytes, i)
                                 if temp_filepath:
                                     st.session_state.img_long_video_generated_segments_paths.append(temp_filepath)
-                                    st.session_state.img_long_video_segment_bytes.append(segment_video_bytes) # Store bytes for display
+                                    st.session_state.img_long_video_segment_bytes.append(segment_video_bytes)
                             else:
                                 st.error(f"Failed to generate segment {i+1}. Aborting stitching.")
                                 st.session_state.img_long_video_generated_segments_paths = []
                                 st.session_state.img_long_video_segment_bytes = []
-                                break # Stop further generation if one fails
+                                break 
                         segment_progress_bar.progress(int(((i + 1) / total_segments) * 100))
                     
                     if len(st.session_state.img_long_video_generated_segments_paths) == total_segments and total_segments > 0:
                         st.success("All image-based segments generated successfully! Now stitching...")
                         
-                        # Display individual segments
-                        st.subheader("Individual Video Segments:")
-                        for idx, segment_bytes in enumerate(st.session_state.img_long_video_segment_bytes):
-                            st.markdown(f"**Segment {idx+1} Video:**")
-                            st.video(segment_bytes)
-                            st.markdown("---") # Separator between segments
-
+                        # Individual segments are already displayed in the loop above
                         final_stitched_video_bytes = stitch_videos(st.session_state.img_long_video_generated_segments_paths)
                         if final_stitched_video_bytes:
                             st.session_state.img_long_video_final_video = final_stitched_video_bytes
