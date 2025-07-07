@@ -945,10 +945,10 @@ def app():
         st.markdown("For each segment, describe the animation or action you want to see applied to the uploaded image. Consider continuity!")
         
         # Ensure there's at least one prompt input if none exist
-        if not st.session_state.img_long_video_segment_prompts:
-            st.session_state.img_long_video_segment_prompts.append("")
+        if not st.session_state.img_long_video_raw_segment_prompts:
+            st.session_state.img_long_video_raw_segment_prompts.append("")
 
-        for i, prompt_value in enumerate(st.session_state.img_long_video_segment_prompts):
+        for i, prompt_value in enumerate(st.session_state.img_long_video_raw_segment_prompts):
             st.markdown(f"**Segment {i+1}**")
             col_prompt, col_refine = st.columns([0.7, 0.3])
             
@@ -960,7 +960,7 @@ def app():
                     value=prompt_value,
                     help="Describe the motion, actions, and camera movements for this specific segment, referencing the uploaded image."
                 )
-                st.session_state.img_long_video_segment_prompts[i] = segment_prompt_current_value
+                st.session_state.img_long_video_raw_segment_prompts[i] = segment_prompt_current_value
                 
             with col_refine:
                 st.markdown("<br>", unsafe_allow_html=True) # Spacer for alignment
@@ -974,7 +974,7 @@ def app():
                                 st.session_state.img_long_video_uploaded_image_mime_type
                             )
                             if refined_segment_prompt:
-                                st.session_state.img_long_video_segment_prompts[i] = refined_segment_prompt
+                                st.session_state.img_long_video_raw_segment_prompts[i] = refined_segment_prompt
                                 st.rerun() # Rerun to update the text area with refined prompt
                     else:
                         st.warning("Please enter a prompt for this segment AND upload a base image to refine.")
@@ -982,14 +982,14 @@ def app():
         col_add_remove_img_long = st.columns(2)
         with col_add_remove_img_long[0]:
             if st.button("➕ Add Another Segment", use_container_width=True, key="add_img_long_segment"):
-                st.session_state.img_long_video_segment_prompts.append("")
+                st.session_state.img_long_video_raw_segment_prompts.append("")
                 st.session_state.img_long_video_final_video = None # Clear previous
                 st.session_state.img_long_video_generated_segments_paths = [] # Clear generated segments
                 st.rerun() 
         with col_add_remove_img_long[1]:
-            if len(st.session_state.img_long_video_segment_prompts) > 1:
+            if len(st.session_state.img_long_video_raw_segment_prompts) > 1:
                 if st.button("➖ Remove Last Segment", use_container_width=True, key="remove_img_long_segment"):
-                    st.session_state.img_long_video_segment_prompts.pop()
+                    st.session_state.img_long_video_raw_segment_prompts.pop()
                     st.session_state.img_long_video_final_video = None
                     st.session_state.img_long_video_generated_segments_paths = []
                     st.rerun()
@@ -998,22 +998,22 @@ def app():
         st.subheader("Step 3: Generate and Stitch")
 
         generate_img_long_disabled = not st.session_state.img_long_video_uploaded_image_bytes or \
-                                    any(not p.strip() for p in st.session_state.img_long_video_segment_prompts)
+                                    any(not p.strip() for p in st.session_state.img_long_video_raw_segment_prompts)
 
         if st.button("🎬 Generate & Stitch All Videos (Image-Based)", use_container_width=True, type="primary", disabled=generate_img_long_disabled, key="generate_img_long_video_button"):
             if not st.session_state.img_long_video_uploaded_image_bytes:
                 st.error("Please upload a base image in Step 1.")
-            elif any(not p.strip() for p in st.session_state.img_long_video_segment_prompts):
+            elif any(not p.strip() for p in st.session_state.img_long_video_raw_segment_prompts):
                 st.error("Please ensure all segment prompts are filled in.")
             else:
                 st.session_state.img_long_video_generated_segments_paths = [] # Reset generated paths
                 st.session_state.img_long_video_final_video = None # Reset final video
                 
-                total_segments = len(st.session_state.img_long_video_segment_prompts)
+                total_segments = len(st.session_state.img_long_video_raw_segment_prompts)
                 segment_progress_bar = st.progress(0)
                 segment_status_text = st.empty()
 
-                for i, prompt in enumerate(st.session_state.img_long_video_segment_prompts):
+                for i, prompt in enumerate(st.session_state.img_long_video_raw_segment_prompts):
                     segment_status_text.text(f"Generating segment {i+1} of {total_segments} (Image-Based)...")
                     with st.spinner(f"Veo is generating segment {i+1} for your image..."):
                         # THIS IS THE CRUCIAL PART: Pass the uploaded image bytes for each segment
