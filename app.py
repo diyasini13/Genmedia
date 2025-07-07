@@ -748,10 +748,178 @@ def app():
             st.info("Define your video segments above and click 'Generate All Video Segments' to create your long video.")
 
 
-    with tab_img_to_long_video:
+    # with tab_img_to_long_video:
+    #     st.header("Image to Long Videos")
+    #     st.markdown("Upload a base image and define multiple prompt segments to create a long video, with each segment animating the uploaded image.")
+
+    #     st.subheader("Step 1: Upload Your Base Image")
+    #     uploaded_img_long_file = st.file_uploader(
+    #         "Choose an image to be the base for all video segments...", 
+    #         type=["jpg", "jpeg", "png"], 
+    #         key="img_long_video_uploader"
+    #     )
+
+    #     if uploaded_img_long_file is not None:
+    #         st.session_state.img_long_video_uploaded_image_bytes = uploaded_img_long_file.getvalue()
+    #         st.session_state.img_long_video_uploaded_image_mime_type = uploaded_img_long_file.type
+    #         st.image(st.session_state.img_long_video_uploaded_image_bytes, caption="Base Image for Long Video", width=300)
+    #         st.success("Base image uploaded successfully!")
+    #         st.session_state.img_long_video_generated_segments_paths = []
+    #         st.session_state.img_long_video_final_video = None
+    #         # Reset prompts and video bytes when new image uploaded
+    #         st.session_state.img_long_video_raw_segment_prompts = [""]
+    #         st.session_state.img_long_video_refined_segment_prompts = [""]
+    #         st.session_state.img_long_video_segment_bytes = [None]
+    #     else:
+    #         st.info("Upload a single image (JPG, JPEG, PNG) that will be animated across all video segments.")
+
+    #     st.subheader("Step 2: Define Video Segments")
+    #     st.markdown("For each segment, describe the animation or action you want to see applied to the uploaded image. Consider continuity!")
+        
+    #     # Ensure consistency in list lengths, adding None for new segments' video bytes
+    #     num_segments_img_long = len(st.session_state.img_long_video_raw_segment_prompts)
+    #     while len(st.session_state.img_long_video_refined_segment_prompts) < num_segments_img_long:
+    #         st.session_state.img_long_video_refined_segment_prompts.append("")
+    #     while len(st.session_state.img_long_video_segment_bytes) < num_segments_img_long:
+    #         st.session_state.img_long_video_segment_bytes.append(None)
+
+
+    #     for i in range(num_segments_img_long):
+    #         st.markdown(f"**Segment {i+1}**")
+    #         col_prompt, col_refine = st.columns([0.7, 0.3])
+            
+    #         with col_prompt:
+    #             st.session_state.img_long_video_raw_segment_prompts[i] = st.text_area(
+    #                 f"Enter prompt for Segment {i+1}:", 
+    #                 height=100, 
+    #                 key=f"img_long_video_raw_segment_prompt_{i}",
+    #                 value=st.session_state.img_long_video_raw_segment_prompts[i],
+    #                 help="Describe the motion, actions, and camera movements for this specific segment, referencing the uploaded image."
+    #             )
+                
+    #         with col_refine:
+    #             st.markdown("<br>", unsafe_allow_html=True)
+    #             if st.button(f"✨ Refine Segment {i+1} Prompt (Gemini)", key=f"refine_img_long_segment_prompt_{i}", use_container_width=True):
+    #                 if st.session_state.img_long_video_raw_segment_prompts[i] and st.session_state.img_long_video_uploaded_image_bytes:
+    #                     with st.spinner(f"Refining prompt for Segment {i+1}..."):
+    #                         refined_segment_prompt = refine_veo_prompt_with_gemini(
+    #                             st.session_state.img_long_video_raw_segment_prompts[i], 
+    #                             st.session_state.img_long_video_uploaded_image_bytes, 
+    #                             st.session_state.img_long_video_uploaded_image_mime_type
+    #                         )
+    #                         if refined_segment_prompt:
+    #                             st.session_state.img_long_video_refined_segment_prompts[i] = refined_segment_prompt
+    #                             st.session_state.img_long_video_segment_bytes[i] = None
+    #                             st.session_state.img_long_video_final_video = None
+    #                             st.rerun() # Added st.rerun() here
+    #                 else:
+    #                     st.warning("Please enter a prompt for this segment AND upload a base image to refine.")
+            
+    #         if st.session_state.img_long_video_refined_segment_prompts[i]:
+    #             st.info(f"**Refined Prompt for Segment {i+1}:** {st.session_state.img_long_video_refined_segment_prompts[i]}")
+    #         else:
+    #             st.info(f"Refined prompt for Segment {i+1} will appear here.")
+            
+    #         if st.session_state.img_long_video_segment_bytes[i]:
+    #             st.markdown(f"**Generated Segment {i+1} Video:**")
+    #             st.video(st.session_state.img_long_video_segment_bytes[i])
+    #             st.markdown("---")
+
+
+    #     col_add_remove_img_long = st.columns(2)
+    #     with col_add_remove_img_long[0]:
+    #         if st.button("➕ Add Another Segment", use_container_width=True, key="add_img_long_segment"):
+    #             st.session_state.img_long_video_raw_segment_prompts.append("")
+    #             st.session_state.img_long_video_refined_segment_prompts.append("")
+    #             st.session_state.img_long_video_segment_bytes.append(None)
+    #             st.session_state.img_long_video_final_video = None
+    #             st.session_state.img_long_video_generated_segments_paths = []
+    #             st.rerun() # Added st.rerun() here
+    #     with col_add_remove_img_long[1]:
+    #         if len(st.session_state.img_long_video_raw_segment_prompts) > 1:
+    #             if st.button("➖ Remove Last Segment", use_container_width=True, key="remove_img_long_segment"):
+    #                 st.session_state.img_long_video_raw_segment_prompts.pop()
+    #                 st.session_state.img_long_video_refined_segment_prompts.pop()
+    #                 st.session_state.img_long_video_segment_bytes.pop()
+    #                 st.session_state.img_long_video_final_video = None
+    #                 st.session_state.img_long_video_generated_segments_paths = []
+    #                 st.rerun() # Added st.rerun() here
+
+    #     st.markdown("---")
+    #     st.subheader("Step 3: Generate and Stitch")
+
+    #     generate_img_long_disabled = not st.session_state.img_long_video_uploaded_image_bytes or \
+    #                                 any(not p.strip() for p in st.session_state.img_long_video_raw_segment_prompts)
+
+    #     if st.button("🎬 Generate & Stitch All Videos (Image-Based)", use_container_width=True, type="primary", disabled=generate_img_long_disabled, key="generate_img_long_video_button"):
+    #         if not st.session_state.img_long_video_uploaded_image_bytes:
+    #             st.error("Please upload a base image in Step 1.")
+    #         else:
+    #             all_prompts_valid = True
+    #             prompts_to_use = []
+    #             for i in range(len(st.session_state.img_long_video_raw_segment_prompts)):
+    #                 current_prompt = st.session_state.img_long_video_refined_segment_prompts[i] or \
+    #                                  st.session_state.img_long_video_raw_segment_prompts[i]
+    #                 if not current_prompt.strip():
+    #                     all_prompts_valid = False
+    #                     st.error(f"Please ensure prompt for Segment {i+1} is filled in.")
+    #                     break
+    #                 prompts_to_use.append(current_prompt)
+
+    #             if all_prompts_valid:
+    #                 st.session_state.img_long_video_generated_segments_paths = []
+    #                 st.session_state.img_long_video_segment_bytes = []
+    #                 st.session_state.img_long_video_final_video = None
+                    
+    #                 total_segments = len(prompts_to_use)
+    #                 segment_progress_bar = st.progress(0)
+    #                 segment_status_text = st.empty()
+
+    #                 for i, prompt in enumerate(prompts_to_use):
+    #                     segment_status_text.text(f"Generating segment {i+1} of {total_segments} (Image-Based)...")
+    #                     with st.spinner(f"Veo is generating segment {i+1} for your image..."):
+    #                         segment_video_bytes = generate_video_with_veo(
+    #                             "image", 
+    #                             st.session_state.img_long_video_uploaded_image_bytes, 
+    #                             prompt
+    #                         )
+    #                         if segment_video_bytes:
+    #                             temp_filepath = save_temp_video(segment_video_bytes, i)
+    #                             if temp_filepath:
+    #                                 st.session_state.img_long_video_generated_segments_paths.append(temp_filepath)
+    #                                 st.session_state.img_long_video_segment_bytes.append(segment_video_bytes)
+    #                         else:
+    #                             st.error(f"Failed to generate segment {i+1}. Aborting stitching.")
+    #                             st.session_state.img_long_video_generated_segments_paths = []
+    #                             st.session_state.img_long_video_segment_bytes = []
+    #                             break 
+    #                     segment_progress_bar.progress(int(((i + 1) / total_segments) * 100))
+                    
+    #                 if len(st.session_state.img_long_video_generated_segments_paths) == total_segments and total_segments > 0:
+    #                     st.success("All image-based segments generated successfully! Now stitching...")
+                        
+    #                     # Individual segments are already displayed in the loop above
+    #                     final_stitched_video_bytes = stitch_videos(st.session_state.img_long_video_generated_segments_paths)
+    #                     if final_stitched_video_bytes:
+    #                         st.session_state.img_long_video_final_video = final_stitched_video_bytes
+    #                 elif total_segments == 0:
+    #                     st.warning("No segments defined to generate.")
+    #                 else:
+    #                     st.error("Failed to generate all segments for stitching.")
+
+    #     if st.session_state.img_long_video_final_video:
+    #         st.subheader("Your Long Image-Based Video")
+    #         st.video(st.session_state.img_long_video_final_video)
+    #     elif st.session_state.img_long_video_generated_segments_paths and not st.session_state.img_long_video_final_video:
+    #         st.info(f"Generated {len(st.session_state.img_long_video_generated_segments_paths)} segments. Check the individual segments above. Click 'Generate & Stitch All Videos (Image-Based)' again if you want to retry stitching.")
+    #         st.warning("If the final video does not appear, ensure FFmpeg is correctly installed and accessible on your system.")
+    #     else:
+    #         st.info("Upload a base image and define your video segments above, then click 'Generate & Stitch All Videos (Image-Based)' to create your long video.")
+    with tab_img_to_long_video: # This is the new tab
         st.header("Image to Long Videos")
         st.markdown("Upload a base image and define multiple prompt segments to create a long video, with each segment animating the uploaded image.")
 
+        # --- Step 1: Upload Base Image ---
         st.subheader("Step 1: Upload Your Base Image")
         uploaded_img_long_file = st.file_uploader(
             "Choose an image to be the base for all video segments...", 
@@ -764,154 +932,119 @@ def app():
             st.session_state.img_long_video_uploaded_image_mime_type = uploaded_img_long_file.type
             st.image(st.session_state.img_long_video_uploaded_image_bytes, caption="Base Image for Long Video", width=300)
             st.success("Base image uploaded successfully!")
+            # Reset segments and final video if a new image is uploaded
             st.session_state.img_long_video_generated_segments_paths = []
             st.session_state.img_long_video_final_video = None
-            # Reset prompts and video bytes when new image uploaded
-            st.session_state.img_long_video_raw_segment_prompts = [""]
-            st.session_state.img_long_video_refined_segment_prompts = [""]
-            st.session_state.img_long_video_segment_bytes = [None]
         else:
             st.info("Upload a single image (JPG, JPEG, PNG) that will be animated across all video segments.")
 
+        # --- Step 2: Define Video Segments ---
         st.subheader("Step 2: Define Video Segments")
         st.markdown("For each segment, describe the animation or action you want to see applied to the uploaded image. Consider continuity!")
         
-        # Ensure consistency in list lengths, adding None for new segments' video bytes
-        num_segments_img_long = len(st.session_state.img_long_video_raw_segment_prompts)
-        while len(st.session_state.img_long_video_refined_segment_prompts) < num_segments_img_long:
-            st.session_state.img_long_video_refined_segment_prompts.append("")
-        while len(st.session_state.img_long_video_segment_bytes) < num_segments_img_long:
-            st.session_state.img_long_video_segment_bytes.append(None)
+        # Ensure there's at least one prompt input if none exist
+        if not st.session_state.img_long_video_segment_prompts:
+            st.session_state.img_long_video_segment_prompts.append("")
 
-
-        for i in range(num_segments_img_long):
+        for i, prompt_value in enumerate(st.session_state.img_long_video_segment_prompts):
             st.markdown(f"**Segment {i+1}**")
             col_prompt, col_refine = st.columns([0.7, 0.3])
             
             with col_prompt:
-                st.session_state.img_long_video_raw_segment_prompts[i] = st.text_area(
-                    f"Enter prompt for Segment {i+1}:", 
+                segment_prompt_current_value = st.text_area(
+                    f"Prompt for Segment {i+1}:", 
                     height=100, 
-                    key=f"img_long_video_raw_segment_prompt_{i}",
-                    value=st.session_state.img_long_video_raw_segment_prompts[i],
+                    key=f"img_long_video_segment_prompt_{i}",
+                    value=prompt_value,
                     help="Describe the motion, actions, and camera movements for this specific segment, referencing the uploaded image."
                 )
+                st.session_state.img_long_video_segment_prompts[i] = segment_prompt_current_value
                 
             with col_refine:
-                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True) # Spacer for alignment
                 if st.button(f"✨ Refine Segment {i+1} Prompt (Gemini)", key=f"refine_img_long_segment_prompt_{i}", use_container_width=True):
-                    if st.session_state.img_long_video_raw_segment_prompts[i] and st.session_state.img_long_video_uploaded_image_bytes:
+                    if segment_prompt_current_value and st.session_state.img_long_video_uploaded_image_bytes:
                         with st.spinner(f"Refining prompt for Segment {i+1}..."):
+                            # Pass the uploaded image bytes to Gemini for context
                             refined_segment_prompt = refine_veo_prompt_with_gemini(
-                                st.session_state.img_long_video_raw_segment_prompts[i], 
+                                segment_prompt_current_value, 
                                 st.session_state.img_long_video_uploaded_image_bytes, 
                                 st.session_state.img_long_video_uploaded_image_mime_type
                             )
                             if refined_segment_prompt:
-                                st.session_state.img_long_video_refined_segment_prompts[i] = refined_segment_prompt
-                                st.session_state.img_long_video_segment_bytes[i] = None
-                                st.session_state.img_long_video_final_video = None
-                                st.rerun() # Added st.rerun() here
+                                st.session_state.img_long_video_segment_prompts[i] = refined_segment_prompt
+                                st.rerun() # Rerun to update the text area with refined prompt
                     else:
                         st.warning("Please enter a prompt for this segment AND upload a base image to refine.")
-            
-            if st.session_state.img_long_video_refined_segment_prompts[i]:
-                st.info(f"**Refined Prompt for Segment {i+1}:** {st.session_state.img_long_video_refined_segment_prompts[i]}")
-            else:
-                st.info(f"Refined prompt for Segment {i+1} will appear here.")
-            
-            if st.session_state.img_long_video_segment_bytes[i]:
-                st.markdown(f"**Generated Segment {i+1} Video:**")
-                st.video(st.session_state.img_long_video_segment_bytes[i])
-                st.markdown("---")
-
 
         col_add_remove_img_long = st.columns(2)
         with col_add_remove_img_long[0]:
             if st.button("➕ Add Another Segment", use_container_width=True, key="add_img_long_segment"):
-                st.session_state.img_long_video_raw_segment_prompts.append("")
-                st.session_state.img_long_video_refined_segment_prompts.append("")
-                st.session_state.img_long_video_segment_bytes.append(None)
-                st.session_state.img_long_video_final_video = None
-                st.session_state.img_long_video_generated_segments_paths = []
-                st.rerun() # Added st.rerun() here
+                st.session_state.img_long_video_segment_prompts.append("")
+                st.session_state.img_long_video_final_video = None # Clear previous
+                st.session_state.img_long_video_generated_segments_paths = [] # Clear generated segments
+                st.rerun() 
         with col_add_remove_img_long[1]:
-            if len(st.session_state.img_long_video_raw_segment_prompts) > 1:
+            if len(st.session_state.img_long_video_segment_prompts) > 1:
                 if st.button("➖ Remove Last Segment", use_container_width=True, key="remove_img_long_segment"):
-                    st.session_state.img_long_video_raw_segment_prompts.pop()
-                    st.session_state.img_long_video_refined_segment_prompts.pop()
-                    st.session_state.img_long_video_segment_bytes.pop()
+                    st.session_state.img_long_video_segment_prompts.pop()
                     st.session_state.img_long_video_final_video = None
                     st.session_state.img_long_video_generated_segments_paths = []
-                    st.rerun() # Added st.rerun() here
+                    st.rerun()
 
         st.markdown("---")
         st.subheader("Step 3: Generate and Stitch")
 
         generate_img_long_disabled = not st.session_state.img_long_video_uploaded_image_bytes or \
-                                    any(not p.strip() for p in st.session_state.img_long_video_raw_segment_prompts)
+                                    any(not p.strip() for p in st.session_state.img_long_video_segment_prompts)
 
         if st.button("🎬 Generate & Stitch All Videos (Image-Based)", use_container_width=True, type="primary", disabled=generate_img_long_disabled, key="generate_img_long_video_button"):
             if not st.session_state.img_long_video_uploaded_image_bytes:
                 st.error("Please upload a base image in Step 1.")
+            elif any(not p.strip() for p in st.session_state.img_long_video_segment_prompts):
+                st.error("Please ensure all segment prompts are filled in.")
             else:
-                all_prompts_valid = True
-                prompts_to_use = []
-                for i in range(len(st.session_state.img_long_video_raw_segment_prompts)):
-                    current_prompt = st.session_state.img_long_video_refined_segment_prompts[i] or \
-                                     st.session_state.img_long_video_raw_segment_prompts[i]
-                    if not current_prompt.strip():
-                        all_prompts_valid = False
-                        st.error(f"Please ensure prompt for Segment {i+1} is filled in.")
-                        break
-                    prompts_to_use.append(current_prompt)
+                st.session_state.img_long_video_generated_segments_paths = [] # Reset generated paths
+                st.session_state.img_long_video_final_video = None # Reset final video
+                
+                total_segments = len(st.session_state.img_long_video_segment_prompts)
+                segment_progress_bar = st.progress(0)
+                segment_status_text = st.empty()
 
-                if all_prompts_valid:
-                    st.session_state.img_long_video_generated_segments_paths = []
-                    st.session_state.img_long_video_segment_bytes = []
-                    st.session_state.img_long_video_final_video = None
-                    
-                    total_segments = len(prompts_to_use)
-                    segment_progress_bar = st.progress(0)
-                    segment_status_text = st.empty()
-
-                    for i, prompt in enumerate(prompts_to_use):
-                        segment_status_text.text(f"Generating segment {i+1} of {total_segments} (Image-Based)...")
-                        with st.spinner(f"Veo is generating segment {i+1} for your image..."):
-                            segment_video_bytes = generate_video_with_veo(
-                                "image", 
-                                st.session_state.img_long_video_uploaded_image_bytes, 
-                                prompt
-                            )
-                            if segment_video_bytes:
-                                temp_filepath = save_temp_video(segment_video_bytes, i)
-                                if temp_filepath:
-                                    st.session_state.img_long_video_generated_segments_paths.append(temp_filepath)
-                                    st.session_state.img_long_video_segment_bytes.append(segment_video_bytes)
-                            else:
-                                st.error(f"Failed to generate segment {i+1}. Aborting stitching.")
-                                st.session_state.img_long_video_generated_segments_paths = []
-                                st.session_state.img_long_video_segment_bytes = []
-                                break 
-                        segment_progress_bar.progress(int(((i + 1) / total_segments) * 100))
-                    
-                    if len(st.session_state.img_long_video_generated_segments_paths) == total_segments and total_segments > 0:
-                        st.success("All image-based segments generated successfully! Now stitching...")
-                        
-                        # Individual segments are already displayed in the loop above
-                        final_stitched_video_bytes = stitch_videos(st.session_state.img_long_video_generated_segments_paths)
-                        if final_stitched_video_bytes:
-                            st.session_state.img_long_video_final_video = final_stitched_video_bytes
-                    elif total_segments == 0:
-                        st.warning("No segments defined to generate.")
-                    else:
-                        st.error("Failed to generate all segments for stitching.")
+                for i, prompt in enumerate(st.session_state.img_long_video_segment_prompts):
+                    segment_status_text.text(f"Generating segment {i+1} of {total_segments} (Image-Based)...")
+                    with st.spinner(f"Veo is generating segment {i+1} for your image..."):
+                        # THIS IS THE CRUCIAL PART: Pass the uploaded image bytes for each segment
+                        segment_video_bytes = generate_video_with_veo(
+                            "image", 
+                            st.session_state.img_long_video_uploaded_image_bytes, 
+                            prompt
+                        )
+                        if segment_video_bytes:
+                            temp_filepath = save_temp_video(segment_video_bytes, i)
+                            if temp_filepath:
+                                st.session_state.img_long_video_generated_segments_paths.append(temp_filepath)
+                        else:
+                            st.error(f"Failed to generate segment {i+1}. Aborting stitching.")
+                            st.session_state.img_long_video_generated_segments_paths = [] # Clear any partially generated segments
+                            break # Stop further generation if one fails
+                    segment_progress_bar.progress(int(((i + 1) / total_segments) * 100))
+                
+                if len(st.session_state.img_long_video_generated_segments_paths) == total_segments and total_segments > 0:
+                    st.success("All image-based segments generated successfully! Now stitching...")
+                    final_stitched_video_bytes = stitch_videos(st.session_state.img_long_video_generated_segments_paths)
+                    if final_stitched_video_bytes:
+                        st.session_state.img_long_video_final_video = final_stitched_video_bytes
+                elif total_segments == 0:
+                    st.warning("No segments defined to generate.")
+                else:
+                    st.error("Failed to generate all segments for stitching.")
 
         if st.session_state.img_long_video_final_video:
             st.subheader("Your Long Image-Based Video")
             st.video(st.session_state.img_long_video_final_video)
-        elif st.session_state.img_long_video_generated_segments_paths and not st.session_state.img_long_video_final_video:
-            st.info(f"Generated {len(st.session_state.img_long_video_generated_segments_paths)} segments. Check the individual segments above. Click 'Generate & Stitch All Videos (Image-Based)' again if you want to retry stitching.")
+        elif st.session_state.img_long_video_generated_segments_paths:
+            st.info(f"Generated {len(st.session_state.img_long_video_generated_segments_paths)} segments. Click 'Generate & Stitch All Videos (Image-Based)' again if you want to retry stitching.")
             st.warning("If the final video does not appear, ensure FFmpeg is correctly installed and accessible on your system.")
         else:
             st.info("Upload a base image and define your video segments above, then click 'Generate & Stitch All Videos (Image-Based)' to create your long video.")
