@@ -810,14 +810,29 @@ def app():
                                 st.session_state.img_long_video_refined_segment_prompts[i] = refined_segment_prompt
                                 st.session_state.img_long_video_segment_bytes[i] = None
                                 st.session_state.img_long_video_final_video = None
-                        st.rerun()
+                                st.rerun()
                     else:
                         st.warning("Please enter a prompt for this segment AND upload a base image to refine.")
-            
-            if st.session_state.img_long_video_refined_segment_prompts[i]:
-                st.info(f"**Refined Prompt for Segment {i+1}:** {st.session_state.img_long_video_refined_segment_prompts[i]}")
-            else:
-                st.info(f"Refined prompt for Segment {i+1} will appear here.")
+            # with col_refine:
+            #     st.markdown("<br>", unsafe_allow_html=True) # Spacer for alignment
+            #     if st.button(f"✨ Refine Segment {i+1} Prompt (Gemini)", key=f"refine_img_long_segment_prompt_{i}", use_container_width=True):
+            #         if segment_prompt_current_value and st.session_state.img_long_video_uploaded_image_bytes:
+            #             with st.spinner(f"Refining prompt for Segment {i+1}..."):
+            #                 # Pass the uploaded image bytes to Gemini for context
+            #                 refined_segment_prompt = refine_veo_prompt_with_gemini(
+            #                     segment_prompt_current_value, 
+            #                     st.session_state.img_long_video_uploaded_image_bytes, 
+            #                     st.session_state.img_long_video_uploaded_image_mime_type
+            #                 )
+            #                 if refined_segment_prompt:
+            #                     st.session_state.img_long_video_segment_prompts[i] = refined_segment_prompt
+            #                     st.rerun() # Rerun to update the text area with refined prompt
+            #         else:
+            #             st.warning("Please enter a prompt for this segment AND upload a base image to refine.")
+            # if st.session_state.img_long_video_refined_segment_prompts[i]:
+            #     st.info(f"**Refined Prompt for Segment {i+1}:** {st.session_state.img_long_video_refined_segment_prompts[i]}")
+            # else:
+            #     st.info(f"Refined prompt for Segment {i+1} will appear here.")
             
             if st.session_state.img_long_video_segment_bytes[i]:
                 st.markdown(f"**Generated Segment {i+1} Video:**")
