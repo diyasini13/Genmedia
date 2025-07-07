@@ -12,7 +12,7 @@ import requests
 import uuid
 from google.genai import types
 import io
-import moviepy.editor as mp # Changed import to moviepy.editor for clarity and common practice
+import moviepy as mp # Changed import to moviepy.editor for clarity and common practice
 import auth_token
 
 # --- Configuration ---
