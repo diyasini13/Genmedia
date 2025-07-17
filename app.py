@@ -13,7 +13,7 @@ import uuid
 from google.genai import types
 import io
 import moviepy as mp # Changed import to moviepy.editor for clarity and common practice
-import auth_token
+# import auth_token
 
 # --- Configuration ---
 os.environ['GCP_REGION'] = 'us-central1'
