@@ -15,12 +15,12 @@ import moviepy as mp # Changed import to moviepy.editor for clarity and common p
 import auth_token
 # --- Configuration ---
 # For local development, consider using Streamlit secrets or directly setting in code as you have for demo
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'genail300-16f209a85e39.json'
-os.environ['GOOGLE_CLOUD_PROJECT'] = 'genail300'
+# os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'genail300-16f209a85e39.json'
+# os.environ['GOOGLE_CLOUD_PROJECT'] = 'genail300'
 os.environ['GCP_REGION'] = 'us-central1'
 
-project_id = "genail300"
-gcs_bucket_name = "veo_testing_hp"
+project_id = "heroprojectlivedemo"
+gcs_bucket_name = "genmedia_video_hero_package"
 
 vertexai.init(project=project_id, location="us-central1")
 client = genai.Client(vertexai=True, project=project_id, location=os.environ['GCP_REGION'])
