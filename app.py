@@ -549,15 +549,6 @@ def app():
             key="image_to_video_prompt_option_radio"
         )
 
-        # Veo model selection for Image to Video
-        st.session_state.image_to_video_veo_model_choice = st.radio(
-            "Choose Veo Model for animation:",
-            ("Veo2", "Veo3"),
-            key="image_to_video_veo_model_selector",
-            on_change=lambda: setattr(st.session_state, 'image_to_video_output_bytes', None) # Clear video if model changes
-        )
-
-
         final_veo_prompt_image_to_video = ""
 
         if st.session_state.animate_image_prompt_option == "With prompt":
@@ -611,11 +602,8 @@ def app():
             elif st.session_state.animate_image_prompt_option == "With prompt" and not final_veo_prompt_image_to_video:
                 st.warning("Please provide a prompt for video generation or select 'Without prompt'.")
             else:
-                with st.spinner(f"Veo ({st.session_state.image_to_video_veo_model_choice}) is animating your image... This can take several minutes."):
-                    if st.session_state.image_to_video_veo_model_choice == "Veo2":
-                        st.session_state.image_to_video_output_bytes = generate_video_with_veo("image", image_for_veo, final_veo_prompt_image_to_video)
-                    elif st.session_state.image_to_video_veo_model_choice == "Veo3":
-                        st.session_state.image_to_video_output_bytes = generate_video_with_veo3("image", image_for_veo, final_veo_prompt_image_to_video)
+                with st.spinner(f"Veo is animating your image... This can take several minutes."):
+                    st.session_state.image_to_video_output_bytes = generate_video_with_veo("image", image_for_veo, final_veo_prompt_image_to_video)
 
         if st.session_state.image_to_video_output_bytes:
             st.subheader("Your Generated Video")
